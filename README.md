@@ -1,35 +1,74 @@
-1st: Created combine datasets from profootball reference data from 2008-2020. Manually classified DL and OLB prospects as either EDGES, DTs, or LBs. Also classified DEs as EDGEs, ILBs as LBs. This was necessary as some OLBs play off the ball, while some rush the passer. Also some DLs are EDGEs and some are DTs.
+NFL EDGE Draft Prediction Model
 
-in linear regression model, q-q plot shows extreme lack of normality -> TODO: transform the response
+Project Overview
+This project develops predictive models to estimate NFL EDGE players’ Approximate Value (AV) over their first five seasons. This timeframe aligns with the typical rookie contract window, where teams expect early performance and return on investment. Approximate Value (AV) is used as the response variable as a general measure of player impact across seasons. While imperfect, it provides a standardized and widely available metric for comparing player performance. The models incorporate pre-draft data, including combine metrics, college production, and physical measurements, to evaluate how well measurable traits predict early NFL success. All statistical analyses are conducted using a 5% significance level.
 
-Performed Box-Cox transformation as their were significant normality issues and got Optimal lambda: 0.19729438412731226
-this is close to 0, so a log transformation will be used
+Data
+The dataset combines data from multiple sources:
+https://www.sports-reference.com/cfb/ (EDGE college stats)
+https://www.pro-football-reference.com/draft/2026-combine.htm (combine results, height, weight)
+https://www.nfl.com/combine/tracker/live-results/ (hand size, arm length)
 
-Best Adj R^2 non-transformed and transformed model is the full model without conference
-I want to cross validate those models or perform some sort of training test split
+The final dataset includes EDGE prospects from 2008–2020, ensuring each player has at least five seasons of NFL performance data available for evaluation.
 
-Made models of 1 predictor vs. response to see which predictors have a relationship with 5 year AV (use non-transformed variable)
-Statistical Significance in Predictors: 3cone (time and if done or not), 40yd (time only), arm_length (not significant), bench (not significant), broad jump (time and if done or not), forced_fumbles (significant), games_played (significant), hand_size (significant), Ht (not significant), sacks (significant), shuttle (time and if done or not), tackles (significant), tackles for loss (significant), vertical (time and if done or not), Wt (not significant) 
+Data Preparation
+Data from multiple sources (2008–2020) was merged into a unified EDGE-level dataset containing combine results, college production, and physical measurements. Manual position reclassification was performed to correct inaccurate positional labels. Indicator variables were created for combine participation, and missing values were imputed using mean values. Physical attributes such as height were standardized (converted from formats like 6-0 to total inches), and college statistics were converted to per-game averages.
 
-While many predictors are statistically significant individually, all small models exhibit low R² values, indicating that no single variable strongly explains variation in 5-year AV on its own.
+Predictor Set:
+The models use four groups of predictors: per-game college production statistics (games_played, tackles, tackles_for_loss, sacks, forced_fumbles), physical measurements (height, weight, arm_length, hand_size), and combine metrics (40yd, vertical, bench, broad_jump, 3cone, shuttle), along with binary indicator variables capturing whether a player participated in each combine event. In addition, college conference is included as a categorical predictor, grouped into Power 5, Group of 5, and FCS.
 
-Significance level is .05 for everything
+The response variable is 5-year Approximate Value (AV).
 
-Performed forward and backward selection on the transformed response, and both subset selection methods produced the same models.
+Initial Data Analysis
+Simple linear regression (SLR) and multiple linear regression (MLR) models were initially explored. Both model types exhibited non-normal residuals, as observed in Q-Q plots. To address this, a Box-Cox transformation was applied to the response variable, suggesting a log transformation (λ ≈ 0.197). As a result, all regression, subset selection, and shrinkage models were fit using the log-transformed response.
 
-Decision Tree and Random Forest models implemented with depth 4. Will be further tested when I get to training test splits and validation.
+Results from Initial Analysis
+No train-test split was used in the initial models, as these analyses were purely exploratory. Across both transformed and untransformed linear regression and shrinkage models, the full linear model (excluding conference) achieved the highest Adjusted R² of 0.307. In single-predictor models, several variables showed statistically significant relationships with the response; however, all models had low R² values, indicating weak predictive power. No individual variable was a strong standalone predictor of 5-year AV. Forward and backward selection on the log-transformed response produced the same subset of predictors, resulting in an Adjusted R² of 0.260. Initial decision tree, random forest, and neural network models were also implemented, but were not optimized until the cross-validation stage.
 
-Did k-fold cv on some models that looked promising
-10-fold cv done on: 3 different transformed linear regression models, forward selection (result for backward selection would be the same as both methods resulted in the same set of predictors), ridge, lasso
-5 fold cv done on:
+10-fold Cross Validation
+K-fold cross-validation (k = 10) was used to evaluate model performance for the most promising approaches. Models evaluated included transformed linear regression, forward and backward selection, ridge regression, lasso regression, random forest, and a neural network.
 
+Results
+The log transformation of the response improved performance for linear models but reduced performance for more flexible models such as random forests and neural networks. As a result, these models were evaluated without the log transformation during cross-validation.
 
-The log transformation of the response variable improved performance for linear models (not including shrinkage methods), but degraded performance for more flexible models like neural networks and random forests in this dataset. So when cv was performed, no log transformation was used on the random forest or neural network models or the lasso regression when cv was performed.
+The best-performing model from 10-fold cross-validation was a neural network, achieving a cross-validated Adjusted R² of 0.2697. This indicates that the model explains approximately 26.97% of the variation in 5-year AV, suggesting limited predictive power from the available features.
 
-Last step: using best model (neural network) to predict this years draft class and output results
+Conclusion
+While the models do not strongly predict 5-year AV, the results highlight the limitations of using only pre-draft measurements and college production to estimate NFL success.
 
-use model to predict this years draft class
-Clean up readme and make linkedin post
+Key Findings
+1. Arm length showed no statistically significant relationship with 5-year AV in single-variable models, suggesting limited standalone predictive value within this dataset. This result provides limited empirical support for the emphasis placed on arm length in some scouting evaluations. For example, EDGE prospect Reuben Bain Jr., who is often noted for shorter arm length measurements, may be cited in scouting discussions where this trait is weighted heavily. However, the model results suggest that this attribute alone is not a strong predictor of early NFL production. It is important to note that observations at the extreme lower end of arm length (such as Bain’s profile) are relatively rare in the dataset, which may limit the precision of inference in that range.
 
-(data from https://www.pro-football-reference.com/draft/2020-combine.htm) also college football reference
-2nd: cleaned datasets (all players are players that attended the combine from 2008-2020 and were drafted)
+2. Pre-draft combine metrics and college production explain only a modest portion of early NFL career value, reinforcing the importance of contextual factors such as scheme fit, coaching, usage, and opportunity in player development.
+
+Tools Used
+- Python
+- pandas
+- numpy
+- scikit-learn
+- matplotlib
+- statsmodels
+- scipy
+- os
+
+File Structure
+
+NFL-EDGE-Draft-Success-Prediction/
+│
+├── data/
+│   ├── raw/                # Raw datasets before processing
+│   ├── clean/              # Final processed datasets
+│
+├── model_results/         # Model outputs, evaluation results, and plots
+│   ├── predictions        # Final predictions from best model (2026 EDGE class)
+│
+├── src/                   # Source code for all modeling and data processing
+│   ├── data_processing    # Scripts to clean and transform raw data
+│   ├── 2026_edge_data_processing
+│   ├── single_predictor_linear_regression
+│   ├── actual_vs_predicted_final_nn
+│   ├── predictions        # Code used to generate final predictions and figures
+│
+├── .gitignore
+├── README.md
+└── requirements.txt
